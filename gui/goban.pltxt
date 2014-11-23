@@ -1,0 +1,170 @@
+#!/usr/bin/perl
+###print "Content-type: text/html\n\nData<br>";###
+
+##
+## goban.pl
+## CGI-script that interprets <goban> tags.
+## Inspired by Nick Wedd (nick@maproom.co.uk)
+## See my web page at http://www.dse.nl/~toni/go/goban2sgf/
+## for more information.
+##
+## Copyright (C) 1999  Toni Cornelissen (toni@dse.nl)
+##
+## This program is free software; you can redistribute it and/or
+## modify it under the terms of the GNU General Public License
+## as published by the Free Software Foundation; either version 2
+## of the License, or (at your option) any later version.
+##
+## This program is distributed in the hope that it will be useful,
+## but WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+## GNU General Public License for more details.
+##
+## You should have received a copy of the GNU General Public License
+## along with this program; if not, write to the Free Software
+## Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+##
+
+#include some subroutines
+require 'cgi-utils.pl';
+require 'tc-utils.pl';
+require 'go-utils.pl';
+
+## default parameters
+$edges  = "";					    ## the edges
+$labels = "";					    ## the labels
+$size   = 0;					    ## the size of the gif's
+$size_x = $size;
+$size_y = $size_x;
+$images = "http://www.weddslist.com/g/";            ## the location of the images
+    ## Nick changed this 2002-12-19.  Toni's images have mixed case filenames which
+    ## did not work with the Unix server that the script is now on.
+$pl     = "B";					    ## the first to play
+
+## parse the query
+%param = &get_query();
+
+## check if the browser accepts gifs
+if ($ENV{'HTTP_ACCEPT'} !~ /image\/gif/) {
+  ## no gifs are accepted,
+  ## so redirect the browser to the url
+#  print "location: $param{'url'}\n\n";
+#  exit;
+} ## no gifs
+
+## overwrite the defaults with the parameters
+$edges  = $param{'edges'}  || $edges;
+$labels = $param{'labels'} || $labels;
+$sizep  = $param{'size'}   || $size;
+$size   = $sizep;
+if ( $size<0 ) { $size = - $size; }
+$sizex  = $size;
+$sizex  = $param{'sizex'}  || $sizex;
+$sizey  = $sizex;
+$sizey  = $param{'sizey'}  || $sizey;
+$images = $param{'images'} || $images;
+$pl     = $param{'pl'}     || $pl;
+if (defined $param{'alt'})    { $alt    = $param{'alt'};    }
+if (defined $param{'border'}) { $border = $param{'border'}; }
+
+## read the page
+###print "URL: $param{'url'}<br>\n";###
+*IN = &OpenURL($param{'url'});
+while (<IN>) { $page .= $_ }
+## remove the extra newline from dos files
+$page =~ s/\r//gs;
+
+## add a base tag
+## if the page doesn't contain a base tag
+if ($page =~ /<base( |>)/i) {
+  ## the base tag doesn't contain a href
+  if ($page !~ /<base[^>]*href\s*=/i) {
+    ## insert the href in the base tag
+    $page =~ s|<base |<base href=\"$param{'url'}\" |i;
+  }
+} ## base tag
+else {
+  ## add the base tag behind the head tag
+  if (0 == $page =~ s|<head>|<head>\n<base href=\"$param{'url'}\">|i) {
+    ## no head tag, put the head tag on top of the page
+    $page = "<base href=\"$param{'url'}\">\n" . $page;
+  }
+} ## no head tag
+
+## find the goban tags
+$startgoban = '<(?:!--)?\s*goban\s*(.*?)\s*(?:--)?>\s*';
+$endgoban   = '\s*<(?:!--)?\s*/goban\s*(?:--)?>';
+
+while ($page =~ m|$startgoban(.*?)$endgoban|is) {
+  my $goattr = $1;   ###print "attr: $goattr<br>\n";###
+  my $goban  = $2;
+
+  ## overwrite values with the parameters of the goban
+  $l_edges   = &find_attribute('edges',  $goattr, $edges );
+  $l_labels  = &find_attribute('labels', $goattr, $labels );
+  $l_size    = &find_attribute('size',   $goattr, 0);
+  $l_sizex   = $l_size;
+  $l_sizey   = $l_size;
+
+  $l_sizex   = &find_attribute('sizex',   $goattr,  $l_sizex) || $sizex;
+  $l_sizey   = &find_attribute('sizey',   $goattr,  $l_sizey) || $sizey;
+  $l_images  = &find_attribute('images',  $goattr,  $images);
+  $l_pl      = &find_attribute('pl',      $goattr,  $pl    );
+
+  $l_alt0    = &find_attribute('alt',     $goattr,
+                               (defined   $alt    ? $alt    : "0"));
+  $l_alt1    = &find_attribute('alt',     $goattr,
+                               (defined   $alt    ? $alt    : "1"));
+  if ($l_alt0 == $l_alt1) { $alt0 = "alt=" . $l_alt1; }
+                     else { $alt0 = "";            }
+  $l_border0 = &find_attribute('border',  $goattr,
+                               (defined   $border ? $border : "0"));
+  $l_border1 = &find_attribute('border',  $goattr,
+                               (defined   $border ? $border : "1"));
+  if ($l_border0 == $l_border1) { $border0 = "border=" . $l_border1; }
+                           else { $border0 = ""
+  }
+
+  $use_images = "http://weddslist.com/g/";
+  if ( $sizep > 0 )  { $use_images = "http://weddslist.com/g/$size/"; }
+  if ( $sizep == 0 ) { $use_images = $l_images; }
+
+  ## the goban code for gifs
+  $goban = &board2html($use_images,
+                       &make_board(&clean_board($goban),
+		                  "width="  . $l_sizey,
+				  "height=" . $l_sizex,
+		                  "edge="   . $l_edges,
+		                  "label="  . $l_labels,
+                                  "PL="     . $l_pl,
+				  $alt0,
+				  $border0));
+
+  ## subsitute
+  $page =~ s|$startgoban(.*?)$endgoban|$goban|is;
+} ## find goban tags
+
+## output
+print "Content-type: text/html\n\n$page";
+
+exit;
+
+sub find_attribute {
+  ## retreives attributes from a string
+  my $key  = shift;
+  my $attr = shift;
+  my $ret  = shift; ## default
+
+  ## quoted (" or ')
+  if ($attr =~ /$key\s*=\s*("|')(.*?)\1/is) {
+    $ret = $2;
+  }
+  ## unquoted, ends with a space of end of line
+  elsif ($attr =~ /$key\s*=\s*(.*?)(\s|$)/i) {
+    $ret = $1;
+  }
+  ## no parameter found,
+  ## the default value was not overwritten
+  ###print "$key: $ret<br>\n";###
+  $ret;
+} ## find_param
