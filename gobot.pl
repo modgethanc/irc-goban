@@ -3,6 +3,9 @@ package Bot;
 use base qw(Bot::BasicBot);
 
 my $BOSS = "hvincent";
+my $black = "unnamed p1";
+my $white = "unnamed p2";
+
 my @board_13 = (
 "   A B C D E F G H I J K L M   ",
 "13 . . . . . . . . . . . . . 13",
@@ -18,17 +21,71 @@ my @board_13 = (
 " 3 . . . . . . . . . . . . . 3 ",
 " 2 . . . . . . . . . . . . . 2 ",
 " 1 . . . . . . . . . . . . . 1 ",
-"   A B C D E F G H I J K L M   "
+"   A B C D E F G H I J K L M   ",
+"black: $black  white $white"
 );
 
 #======= helper functions
 
 sub printBoard {
 	my ($self, $message) = @_;
+	&webBoard;
 
 	foreach (@board_13) {
 		$self->say(channel => $message->{channel}, body => $_);
 	}
+}
+
+sub webBoard {
+	my $outfile = "board.html";
+	my $gifs = "gogifs";
+	open OUT, ">", $outfile;
+	select OUT;
+	print "<html><head><title>gobot out</title></head><body>";
+	close OUT;
+	open OUT, ">>", $outfile;
+	select OUT;
+
+	print "<p><img src=\"$gifs/1.GIF\">";
+	for (my $i=0; $i<11; $i++) {
+		print "<img src=\"$gifs/2.GIF\">";
+	}
+	print "<img src=\"$gifs/3.GIF\"><br>";
+
+	for (my $j=0; $j<11; $j++) {
+		print "<img src=\"$gifs/4.GIF\">";
+		for ($i=0; $i<11; $i++) {
+			if ($j==2) {
+				if (($i==2) || ($i==8)) {
+					print "<img src=\"$gifs/H.GIF\">";
+				} else {
+					print "<img src=\"$gifs/5.GIF\">";
+				}
+			} elsif ($j==8) {
+				if (($i==2) || ($i==8)) {
+					print "<img src=\"$gifs/H.GIF\">";
+				} else {
+					print "<img src=\"$gifs/5.GIF\">";
+				}
+			} elsif (($j==5) && ($i==5)) {
+				print "<img src=\"$gifs/H.GIF\">";
+			} else {
+				print "<img src=\"$gifs/5.GIF\">";
+			}
+		}
+		print "<img src=\"$gifs/6.GIF\"><br>";
+	}
+
+	print "<img src=\"$gifs/7.GIF\">";
+	for ($i=0; $i<11; $i++) {
+		print "<img src=\"$gifs/8.GIF\">";
+	}
+	print "<img src=\"$gifs/9.GIF\"></p>";
+
+
+	print "<p>black: $black <br>white: $white</p";
+	print "</body></html>";
+	close OUT;
 }
 
 #======= overrides
