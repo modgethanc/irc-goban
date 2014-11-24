@@ -7,7 +7,9 @@ my $BOSS = "hvincent";
 my $black = "unnamed p1";
 my $white = "unnamed p2";
 
-my $turn; 
+my $turn =\$black;
+
+my @movelog;
 
 my $B = "O";
 my $W = "X";
@@ -102,6 +104,8 @@ sub printBoard {
 	my ($self, $message) = @_;
 	&webBoard(\@board_9);
 
+	$self->say(channel => $message->{channel}, body => "http://theta.cfa.cmu.edu/hvincent/gobot-out.html");
+
 	foreach my $row (@board_9) {
 		my $line = join(" ", @$row);
 
@@ -139,45 +143,13 @@ sub webBoard {
 	print "</p>\n";
 	$j = 0;
 	$i = 0;	
-#	print "<p><img src=\"$gifs/1.GIF\">";
-#	for (my $i=0; $i<11; $i++) {
-#		print "<img src=\"$gifs/2.GIF\">";
-#	}
-#	print "<img src=\"$gifs/3.GIF\"><br>";
-#
-##	for (my $j=0; $j<11; $j++) {
-#		print "<img src=\"$gifs/4.GIF\">";
-##		for ($i=0; $i<11; $i++) {
-#			if ($j==2) {
-#				if (($i==2) || ($i==8)) {
-#					print "<img src=\"$gifs/H.GIF\">";
-#				} else {
-#					print "<img src=\"$gifs/5.GIF\">";
-#				}
-#			} elsif ($j==8) {
-#				if (($i==2) || ($i==8)) {
-#					print "<img src=\"$gifs/H.GIF\">";
-#				} else {
-#					print "<img src=\"$gifs/5.GIF\">";
-#				}
-#			} elsif (($j==5) && ($i==5)) {
-#				print "<img src=\"$gifs/H.GIF\">";
-#			} else {
-#				print "<img src=\"$gifs/5.GIF\">";
-#			}
-#		}
-#		print "<img src=\"$gifs/6.GIF\"><br>";
-#	}
-#
-#	print "<img src=\"$gifs/7.GIF\">";
-#	for ($i=0; $i<11; $i++) {
-#		print "<img src=\"$gifs/8.GIF\">";
-#	}
-#	print "<img src=\"$gifs/9.GIF\"></p>";
-
 
 	print "<p>black: $black <br>white: $white</p>";
-	print "</body></html>";
+	print "<p>move history:</p>\n";
+	foreach (@movelog) {
+		print "$_ ";
+	}
+	print "\n</body></html>";
 	close OUT;
 }
 
@@ -200,7 +172,7 @@ sub gifSelection {
 		if ($column == 9) { return $lead."3".$tail; }
 	} 
 
-	elsif ($row ~~ 2..8) {
+	elsif (($row > 1) && ($row < 9)) {
 		if ($column == 1) { return $lead."4".$tail; }
 		if (($column > 1) && ($column < 9)) { return $lead."5".$tail; }
 		if ($column == 9) { return $lead."6".$tail; }
@@ -219,18 +191,41 @@ sub gifSelection {
 
 sub play {
 	my ($self, $message) = @_;
+	
+	if ($message->{who} !~ /$$turn/) {
+		return "it's not your turn, $message->{who}";
+	}
+
+	my $move = &extractMove($self, $message);
+	push(@movelog, $move);
+
+	my ($i, $j) = &boardPosition(split("", $move));
+
+	$self->say(channel => $message->{channel}, body => "$$turn plays $move.");
+
+	if ($turn == \$black ) {
+		$board_9[$j][$i] = $B;
+		$turn = \$white;
+	} else {
+		$board_9[$j][$i] = $W;
+		$turn = \$black;
+	}
+
+	&webBoard(\@board_9);
+
+	return "http://theta.cfa.cmu.edu/hvincent/gobot-out.html updated";
+}
+
+sub removePiece {
+	my ($self, $message) = @_;
 
 	my $move = &extractMove($self, $message);
 
-	my @moves = split("",$move);
-	my $a = shift(@moves);
-	my $i = $coords{$a};
-	my $b = join("",@moves);
-	my $j = $coords{$b};
-
-	$board_9[$j][$i] = $B;
-
-	$self->say(channel => $message->{channel}, body => "$turn plays $i, $j");
+	my ($i, $j) = &boardPosition(split("", $move));
+	$board_9[$j][$i] = $X;
+	
+	&webBoard;
+	return "done. http://theta.cfa.cmu.edu/hvincent/gobot-out.html updated";
 }
 
 sub extractMove {
@@ -239,6 +234,15 @@ sub extractMove {
 	my @a = split(' ', $message->{body});
 	shift(@a);
 	return join(' ', @a);
+}
+
+sub boardPosition {
+	my $a = shift(@_);
+	my $b = join ("", @_);
+
+	my @position;
+	push(@position, $coords{$a}, $coords{$b});
+	return @position;
 }
 
 #======= overrides
@@ -251,7 +255,6 @@ sub said {
 		#== init
 		when (/i'm black/) { 
 			$black = $message->{who};
-			$turn = $black;
 			$self->say(channel => $message->{channel}, body => "okay, you're black");
 		}
 		when (/i'm white/) { 
@@ -260,7 +263,10 @@ sub said {
 		}
 		#== commands
 		when (/play/) {
-			&play($self, $message);
+			$self->say(channel => $message->{channel}, body => &play($self, $message));
+		}
+		when (/remove/) {
+			$self->say(channel => $message->{channel}, body => &removePiece($self, $message));
 		}
 		when (/board/) { 
 			&printBoard($self, $message); 
