@@ -7,8 +7,32 @@ my $BOSS = "hvincent";
 my $black = "unnamed p1";
 my $white = "unnamed p2";
 
+my $turn = $black;
+
+my %coords = (
+	'A' => 1,
+	'B' => 2,
+	'C' => 3,
+	'D' => 4,
+	'E' => 5,
+	'F' => 6,
+	'G' => 7,
+	'H' => 8,
+	'J' => 9,
+	'K' => 10,
+	'L' => 11,
+	'M' => 12,
+	'N' => 13,
+	'O' => 14,
+	'P' => 15,
+	'Q' => 16,
+	'R' => 17,
+	'S' => 18,
+	'T' => 19
+);
+
 my @board_13 = (
-["   A B C D E F G H I J K L M   "],
+["   A B C D E F G H J K L M N   "],
 ["13",".",".",".",".",".",".",".",".",".",".",".",".",".","13"],
 ["12",".",".",".",".",".",".",".",".",".",".",".",".",".","12"],
 ["11",".",".",".",".",".",".",".",".",".",".",".",".",".","11"],
@@ -22,7 +46,7 @@ my @board_13 = (
 [" 3",".",".",".",".",".",".",".",".",".",".",".",".","."," 3"],
 [" 2",".",".",".",".",".",".",".",".",".",".",".",".","."," 2"],
 [" 1",".",".",".",".",".",".",".",".",".",".",".",".","."," 1"],
-["   A B C D E F G H I J K L M   "]
+["   A B C D E F G H J K L M N   "]
 );
 
 my @board_9 = (
@@ -39,7 +63,7 @@ my @board_9 = (
 ["  A B C D E F G H J  "]
 );
 
-#======= helper functions
+#======= display 
 
 sub printBoard {
 	my ($self, $message) = @_;
@@ -104,11 +128,35 @@ sub webBoard {
 	close OUT;
 }
 
+#======= gameplay
+
+sub play {
+	my ($self, $message) = @_;
+
+	my $move = &extractMove($self, $message);
+
+	my @moves = split("",$move);
+	my $i = shift(@moves);
+	my $j = join("",@moves);
+
+	$self->say(channel => $message->{channel}, body => "$turn plays $i, $j");
+	
+}
+
+sub extractMove {
+	my ($self, $message) = @_;
+
+	my @a = split(' ', $message->{body});
+	shift(@a);
+	return join(' ', @a);
+}
+
 #======= overrides
 
 sub said {
 	my ($self, $message) = @_;
-	
+
+	if ($message->{address}) {
 	given ($message->{body}) {
 		#== init
 		when (/i'm black/) { 
@@ -120,11 +168,19 @@ sub said {
 			$self->say(channel => $message->{channel}, body => "okay, you're white");
 		}
 		#== commands
-		when (/board/) { &printBoard($self, $message); }
+		when (/play/) {
+			&play($self, $message);
+		}
+		when (/board/) { 
+			&printBoard($self, $message); 
+		}
 		when (/who/) {
 			$self->say(channel => $message->{channel}, body => "black: $black; white: $white");
 		}
-	}
+		when (/turn/) {
+			$self->say(channel => $message->{channel}, body => "it's $turn\'s turn to play");
+		}
+	}}
 }
 
 #	if ($message->{body} =~ /board/) {
