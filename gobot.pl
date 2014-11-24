@@ -222,7 +222,12 @@ sub removePiece {
 	my $move = &extractMove($self, $message);
 
 	my ($i, $j) = &boardPosition(split("", $move));
-	$board_9[$j][$i] = $X;
+
+	if (($move =~/c3/) || ($move =~ /c7/) || ($move =~ /g3/) || ($move =~ /g7/) || ($move =~ /e5/)) {
+		$board_9[$j][$i] = $H;
+	} else {
+		$board_9[$j][$i] = $X;
+	}
 	
 	&webBoard;
 	return "done. http://theta.cfa.cmu.edu/hvincent/gobot-out.html updated";
@@ -275,7 +280,7 @@ sub said {
 			$self->say(channel => $message->{channel}, body => "black: $black; white: $white");
 		}
 		when (/turn/) {
-			$self->say(channel => $message->{channel}, body => "it's $turn\'s turn to play");
+			$self->say(channel => $message->{channel}, body => "it's $$turn\'s turn to play");
 		}
 	}}
 }
