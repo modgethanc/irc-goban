@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 package Bot;
 use base qw(Bot::BasicBot);
+use feature qw(switch);
 
 my $BOSS = "hvincent";
 my $black = "unnamed p1";
@@ -25,17 +26,17 @@ my @board_13 = (
 );
 
 my @board_9 = (
-["   A B C D E F G H I J   "]
-[" 9",".",".",".",".",".",".",".",".","."," 9"],
-[" 8",".",".",".",".",".",".",".",".","."," 8"],
-[" 7",".",".",".",".",".",".",".",".","."," 7"],
-[" 6",".",".",".",".",".",".",".",".","."," 6"],
-[" 5",".",".",".",".","+",".",".",".","."," 5"],
-[" 4",".",".",".",".",".",".",".",".","."," 4"],
-[" 3",".",".",".",".",".",".",".",".","."," 3"],
-[" 2",".",".",".",".",".",".",".",".","."," 2"],
-[" 1",".",".",".",".",".",".",".",".","."," 1"],
-["   A B C D E F G H I J   "]
+["  A B C D E F G H J  "],
+["9",".",".",".",".",".",".",".",".",".","9"],
+["8",".",".",".",".",".",".",".",".",".","8"],
+["7",".",".","+",".",".",".","+",".",".","7"],
+["6",".",".",".",".",".",".",".",".",".","6"],
+["5",".",".",".",".","+",".",".",".",".","5"],
+["4",".",".",".",".",".",".",".",".",".","4"],
+["3",".",".","+",".",".",".","+",".",".","3"],
+["2",".",".",".",".",".",".",".",".",".","2"],
+["1",".",".",".",".",".",".",".",".",".","1"],
+["  A B C D E F G H J  "]
 );
 
 #======= helper functions
@@ -107,11 +108,28 @@ sub webBoard {
 
 sub said {
 	my ($self, $message) = @_;
-
-	if ($message->{body} =~ /board/) {
-		&printBoard;
+	
+	given ($message->{body}) {
+		#== init
+		when (/i'm black/) { 
+			$black = $message->{who};
+			$self->say(channel => $message->{channel}, body => "okay, you're black");
+		}
+		when (/i'm white/) { 
+			$white = $message->{who};
+			$self->say(channel => $message->{channel}, body => "okay, you're white");
+		}
+		#== commands
+		when (/board/) { &printBoard($self, $message); }
+		when (/who/) {
+			$self->say(channel => $message->{channel}, body => "black: $black; white: $white");
+		}
 	}
 }
+
+#	if ($message->{body} =~ /board/) {
+#		&printBoard($self, $message);
+#	}
 
 sub chanjoin {
 	my ($self, $message) = @_;
