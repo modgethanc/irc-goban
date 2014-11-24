@@ -7,7 +7,12 @@ my $BOSS = "hvincent";
 my $black = "unnamed p1";
 my $white = "unnamed p2";
 
-my $turn = $black;
+my $turn; 
+
+my $B = "O";
+my $W = "X";
+my $H = "+";
+my $X = ".";
 
 my %coords = (
 	'A' => 1,
@@ -28,7 +33,35 @@ my %coords = (
 	'Q' => 16,
 	'R' => 17,
 	'S' => 18,
-	'T' => 19
+	'T' => 19,
+	'a' => 1,
+	'b' => 2,
+	'c' => 3,
+	'd' => 4,
+	'e' => 5,
+	'f' => 6,
+	'g' => 7,
+	'h' => 8,
+	'j' => 9,
+	'k' => 10,
+	'l' => 11,
+	'm' => 12,
+	'n' => 13,
+	'o' => 14,
+	'p' => 15,
+	'q' => 16,
+	'r' => 17,
+	's' => 18,
+	't' => 19,
+	'9' => 1,
+	'8' => 2,
+	'7' => 3,
+	'6' => 4,
+	'5' => 5,
+	'4' => 6,
+	'3' => 7,
+	'2' => 8,
+	'1' => 9
 );
 
 my @board_13 = (
@@ -67,7 +100,7 @@ my @board_9 = (
 
 sub printBoard {
 	my ($self, $message) = @_;
-	#&webBoard;
+	&webBoard(\@board_9);
 
 	foreach my $row (@board_9) {
 		my $line = join(" ", @$row);
@@ -79,53 +112,107 @@ sub printBoard {
 sub webBoard {
 	my $outfile = "board.html";
 	my $gifs = "gogifs";
+	my @board = $_[0];
+
 	open OUT, ">", $outfile;
 	select OUT;
-	print "<html><head><title>gobot out</title></head><body>";
+	print "<html><head><title>gobot out</title></head><body>\n";
 	close OUT;
 	open OUT, ">>", $outfile;
 	select OUT;
+	
+	my $j, $i;
+	
+	print "<p>";
 
-	print "<p><img src=\"$gifs/1.GIF\">";
-	for (my $i=0; $i<11; $i++) {
-		print "<img src=\"$gifs/2.GIF\">";
-	}
-	print "<img src=\"$gifs/3.GIF\"><br>";
-
-	for (my $j=0; $j<11; $j++) {
-		print "<img src=\"$gifs/4.GIF\">";
-		for ($i=0; $i<11; $i++) {
-			if ($j==2) {
-				if (($i==2) || ($i==8)) {
-					print "<img src=\"$gifs/H.GIF\">";
-				} else {
-					print "<img src=\"$gifs/5.GIF\">";
-				}
-			} elsif ($j==8) {
-				if (($i==2) || ($i==8)) {
-					print "<img src=\"$gifs/H.GIF\">";
-				} else {
-					print "<img src=\"$gifs/5.GIF\">";
-				}
-			} elsif (($j==5) && ($i==5)) {
-				print "<img src=\"$gifs/H.GIF\">";
-			} else {
-				print "<img src=\"$gifs/5.GIF\">";
-			}
+	foreach my $row (@board_9) {
+		foreach my $column (@$row) {
+			print &gifSelection($j, $i, $board_9[$j][$i]);
+			#print "<img src=\"$gifs/".&gifSelection($j, $i, $board[$j][$i])."\">";
+			$i++
 		}
-		print "<img src=\"$gifs/6.GIF\"><br>";
+		print "<br>\n";
+		$i = 0;
+		$j++;
 	}
 
-	print "<img src=\"$gifs/7.GIF\">";
-	for ($i=0; $i<11; $i++) {
-		print "<img src=\"$gifs/8.GIF\">";
-	}
-	print "<img src=\"$gifs/9.GIF\"></p>";
+	print "</p>\n";
+	$j = 0;
+	$i = 0;	
+#	print "<p><img src=\"$gifs/1.GIF\">";
+#	for (my $i=0; $i<11; $i++) {
+#		print "<img src=\"$gifs/2.GIF\">";
+#	}
+#	print "<img src=\"$gifs/3.GIF\"><br>";
+#
+##	for (my $j=0; $j<11; $j++) {
+#		print "<img src=\"$gifs/4.GIF\">";
+##		for ($i=0; $i<11; $i++) {
+#			if ($j==2) {
+#				if (($i==2) || ($i==8)) {
+#					print "<img src=\"$gifs/H.GIF\">";
+#				} else {
+#					print "<img src=\"$gifs/5.GIF\">";
+#				}
+#			} elsif ($j==8) {
+#				if (($i==2) || ($i==8)) {
+#					print "<img src=\"$gifs/H.GIF\">";
+#				} else {
+#					print "<img src=\"$gifs/5.GIF\">";
+#				}
+#			} elsif (($j==5) && ($i==5)) {
+#				print "<img src=\"$gifs/H.GIF\">";
+#			} else {
+#				print "<img src=\"$gifs/5.GIF\">";
+#			}
+#		}
+#		print "<img src=\"$gifs/6.GIF\"><br>";
+#	}
+#
+#	print "<img src=\"$gifs/7.GIF\">";
+#	for ($i=0; $i<11; $i++) {
+#		print "<img src=\"$gifs/8.GIF\">";
+#	}
+#	print "<img src=\"$gifs/9.GIF\"></p>";
 
 
-	print "<p>black: $black <br>white: $white</p";
+	print "<p>black: $black <br>white: $white</p>";
 	print "</body></html>";
 	close OUT;
+}
+
+sub gifSelection {
+	my $row = $_[0];
+	my $column = $_[1];
+	my $piece = $_[2];
+
+	my $lead = "<img src=\"gogifs/";
+	my $tail = ".GIF\">";
+
+	if ($piece =~ /$B/) { return $lead."B".$tail; }
+	elsif ($piece =~ /$W/) { return $lead."W".$tail; }
+	elsif ($piece =~ /\+/) { return $lead."H".$tail; }
+
+	elsif ($piece =~ /\./) {
+	if ($row == 1) {
+		if ($column == 1) { return $lead."1".$tail; }
+		if (($column > 1) && ($column < 9)) { return $lead."2".$tail; }
+		if ($column == 9) { return $lead."3".$tail; }
+	} 
+
+	elsif ($row ~~ 2..8) {
+		if ($column == 1) { return $lead."4".$tail; }
+		if (($column > 1) && ($column < 9)) { return $lead."5".$tail; }
+		if ($column == 9) { return $lead."6".$tail; }
+	}
+
+	elsif ($row == 9) {
+		if ($column == 1) { return $lead."7".$tail; }
+		if (($column > 1) && ($column < 9)) { return $lead."8".$tail; }
+		if ($column == 9) { return $lead."9".$tail; }
+	}
+	}
+	else {return;}
 }
 
 #======= gameplay
@@ -136,11 +223,14 @@ sub play {
 	my $move = &extractMove($self, $message);
 
 	my @moves = split("",$move);
-	my $i = shift(@moves);
-	my $j = join("",@moves);
+	my $a = shift(@moves);
+	my $i = $coords{$a};
+	my $b = join("",@moves);
+	my $j = $coords{$b};
+
+	$board_9[$j][$i] = $B;
 
 	$self->say(channel => $message->{channel}, body => "$turn plays $i, $j");
-	
 }
 
 sub extractMove {
@@ -161,6 +251,7 @@ sub said {
 		#== init
 		when (/i'm black/) { 
 			$black = $message->{who};
+			$turn = $black;
 			$self->say(channel => $message->{channel}, body => "okay, you're black");
 		}
 		when (/i'm white/) { 
