@@ -135,7 +135,6 @@ sub webBoard {
 	foreach my $row (@board_9) {
 		foreach my $column (@$row) {
 			print &gifSelection($j, $i, $board_9[$j][$i]);
-			#print "<img src=\"$gifs/".&gifSelection($j, $i, $board[$j][$i])."\">";
 			$i++
 		}
 		print "<br>\n";
@@ -205,7 +204,7 @@ sub play {
 	my $move = shift(@parse);
 	@parse = split('',$move);
 
-	if ($parse[1] !~ /\d/) {	
+	if (($parse[1] < 1) || ($parse[1] > 9) || (!$coords{$parse[0]})) {	
 		return;
 	}
 
