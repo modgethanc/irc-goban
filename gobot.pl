@@ -11,6 +11,7 @@ my $bcaps = 0;
 my $wcaps = 0;
 
 my $turn =\$black;
+my $activeBoard = \@board_9;
 
 my @movelog;
 
@@ -105,7 +106,7 @@ my @board_9 = (
 
 sub printBoard {
 	my ($self, $message) = @_;
-	&webBoard(\@board_9);
+	&webBoard;
 
 	$self->say(channel => $message->{channel}, body => "http://theta.cfa.cmu.edu/hvincent/gobot-out.html");
 
@@ -119,7 +120,7 @@ sub printBoard {
 sub webBoard {
 	my $outfile = "board.html";
 	my $gifs = "gogifs";
-	my @board = $_[0];
+	my @board = @{$activeBoard};
 
 	open OUT, ">", $outfile;
 	select OUT;
@@ -133,8 +134,10 @@ sub webBoard {
 	print "<p>";
 
 	foreach my $row (@board_9) {
+	#foreach my $row (@board) {
 		foreach my $column (@$row) {
 			print &gifSelection($j, $i, $board_9[$j][$i]);
+			#print &gifSelection($j, $i, $board[$j][$i]);
 			$i++
 		}
 		print "<br>\n";
@@ -169,25 +172,26 @@ sub gifSelection {
 	elsif ($piece =~ /\+/) { return $lead."H".$tail; }
 
 	elsif ($piece =~ /\./) {
-	if ($row == 1) {
-		if ($column == 1) { return $lead."1".$tail; }
-		if (($column > 1) && ($column < 9)) { return $lead."2".$tail; }
-		if ($column == 9) { return $lead."3".$tail; }
-	} 
+		if ($row == 1) {
+			if ($column == 1) { return $lead."1".$tail; }
+			if (($column > 1) && ($column < 9)) { return $lead."2".$tail; }
+			if ($column == 9) { return $lead."3".$tail; }
+		} 
 
-	elsif (($row > 1) && ($row < 9)) {
-		if ($column == 1) { return $lead."4".$tail; }
-		if (($column > 1) && ($column < 9)) { return $lead."5".$tail; }
-		if ($column == 9) { return $lead."6".$tail; }
+		elsif (($row > 1) && ($row < 9)) {
+			if ($column == 1) { return $lead."4".$tail; }
+			if (($column > 1) && ($column < 9)) { return $lead."5".$tail; }
+			if ($column == 9) { return $lead."6".$tail; }
+		}
+
+		elsif ($row == 9) {
+			if ($column == 1) { return $lead."7".$tail; }
+			if (($column > 1) && ($column < 9)) { return $lead."8".$tail; }
+			if ($column == 9) { return $lead."9".$tail; }
+		}
 	}
 
-	elsif ($row == 9) {
-		if ($column == 1) { return $lead."7".$tail; }
-		if (($column > 1) && ($column < 9)) { return $lead."8".$tail; }
-		if ($column == 9) { return $lead."9".$tail; }
-	}
-	}
-	else {return;}
+	else {return " ";}
 }
 
 #======= gameplay
@@ -282,23 +286,31 @@ sub capturePiece {
 	
 	#== perform capture
 
-	if (($move =~/c3/) || ($move =~ /c7/) || ($move =~ /g3/) || ($move =~ /g7/) || ($move =~ /e5/)) { #HARDCODE BS
-		$$position = $H;
-	} else {
-		$$position = $X;
-	}
+
 	if ($$position =~ /$B/ ) {
+		if (($move =~/c3/) || ($move =~ /c7/) || ($move =~ /g3/) || ($move =~ /g7/) || ($move =~ /e5/)) { #HARDCODE BS
+			$$position = $H;
+		} else {
+			$$position = $X;
+		}
+
 		$bcaps++;
 		&webBoard;
 		return "black has $bcaps captured pieces";
 	} else {
+		if (($move =~/c3/) || ($move =~ /c7/) || ($move =~ /g3/) || ($move =~ /g7/) || ($move =~ /e5/)) { #HARDCODE BS
+			$$position = $H;
+		} else {
+			$$position = $X;
+		}
+
 		$wcaps++;
 		&webBoard;
 		return "white has $wcaps captured pieces";
 	}
 }
 
-sub extractMove {
+sub extractMove { #pulls off a commanded move
 	my ($self, $message) = @_;
 
 	my @a = split(' ', $message->{body});
@@ -306,7 +318,7 @@ sub extractMove {
 	return join(' ', @a);
 }
 
-sub boardPosition {
+sub boardPosition { #translates a move into real board position
 	my $a = shift(@_);
 	my $b = join ("", @_);
 
@@ -321,33 +333,34 @@ sub said {
 	my ($self, $message) = @_;
 
 	if ($message->{address}) {
-	given ($message->{body}) {
+		given ($message->{body}) {
 		#== init
-		when (/i'm black/) { 
-			$black = $message->{who};
-			$self->say(channel => $message->{channel}, body => "okay, you're black");
+			when (/i'm black/) { 
+				$black = $message->{who};
+				$self->say(channel => $message->{channel}, body => "okay, you're black");
+			}
+			when (/i'm white/) { 
+				$white = $message->{who};
+				$self->say(channel => $message->{channel}, body => "okay, you're white");
+			}
+			#== commands
+			when (/remove/) {
+				$self->say(channel => $message->{channel}, body => &removePiece($self, $message));
+			}
+			when (/capture/) {
+				$self->say(channel => $message->{channel}, body => &capturePiece($self, $message));
+			}
+			when (/board/) { 
+				&printBoard($self, $message); 
+			}
+			when (/who/) {
+				$self->say(channel => $message->{channel}, body => "black: $black; white: $white");
+			}
+			when (/turn/) {
+				$self->say(channel => $message->{channel}, body => "it's $$turn\'s turn to play");
+			}
 		}
-		when (/i'm white/) { 
-			$white = $message->{who};
-			$self->say(channel => $message->{channel}, body => "okay, you're white");
-		}
-		#== commands
-		when (/remove/) {
-			$self->say(channel => $message->{channel}, body => &removePiece($self, $message));
-		}
-		when (/capture/) {
-			$self->say(channel => $message->{channel}, body => &capturePiece($self, $message));
-		}
-		when (/board/) { 
-			&printBoard($self, $message); 
-		}
-		when (/who/) {
-			$self->say(channel => $message->{channel}, body => "black: $black; white: $white");
-		}
-		when (/turn/) {
-			$self->say(channel => $message->{channel}, body => "it's $$turn\'s turn to play");
-		}
-	}}
+	}
 	if ($message->{who} =~ /$$turn/) {
 		&play($self, $message);
 	}
