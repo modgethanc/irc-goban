@@ -201,8 +201,6 @@ sub play {
 
 	my ($i, $j) = &boardPosition(split("", $move));
 
-	$self->say(channel => $message->{channel}, body => "$$turn plays $move.");
-
 	if ($turn == \$black ) {
 		$board_9[$j][$i] = $B;
 		$turn = \$white;
@@ -213,7 +211,7 @@ sub play {
 
 	&webBoard(\@board_9);
 
-	return "http://theta.cfa.cmu.edu/hvincent/gobot-out.html updated";
+	return "your move, $$turn";
 }
 
 sub removePiece {
@@ -267,9 +265,6 @@ sub said {
 			$self->say(channel => $message->{channel}, body => "okay, you're white");
 		}
 		#== commands
-		when (/play/) {
-			$self->say(channel => $message->{channel}, body => &play($self, $message));
-		}
 		when (/remove/) {
 			$self->say(channel => $message->{channel}, body => &removePiece($self, $message));
 		}
@@ -283,11 +278,10 @@ sub said {
 			$self->say(channel => $message->{channel}, body => "it's $$turn\'s turn to play");
 		}
 	}}
+	if ($message->{body} =~ /play/) {
+		$self->say(channel => $message->{channel}, body => &play($self, $message));
+	}
 }
-
-#	if ($message->{body} =~ /board/) {
-#		&printBoard($self, $message);
-#	}
 
 sub chanjoin {
 	my ($self, $message) = @_;
@@ -301,7 +295,7 @@ sub chanjoin {
 
 Bot->new(
 	server   => "irc.freenode.net",
-	channels => [ '#kvincent'],#giantfuckingqueens,#trhq' ],
+	channels => [ '#kvincent'],
 	nick     => 'kvincent-go',
 	name     => $BOSS."'s bot",
 	quit_message     => "i'm out",
