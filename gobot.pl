@@ -7,6 +7,9 @@ my $BOSS = "hvincent";
 my $black = "unnamed p1";
 my $white = "unnamed p2";
 
+my $bcaps = 0;
+my $wcaps = 0;
+
 my $turn =\$black;
 
 my @movelog;
@@ -144,11 +147,12 @@ sub webBoard {
 	$j = 0;
 	$i = 0;	
 
-	print "<p>black: $black <br>white: $white</p>";
+	print "<p>black: $black (caps: $bcaps) <br>white: $white (caps: $wcaps)</p>";
 	print "<p>move history:</p>\n";
 	foreach (@movelog) {
 		print "$_ ";
 	}
+
 	print "\n</body></html>";
 	close OUT;
 }
@@ -225,6 +229,11 @@ sub removePiece {
 		$board_9[$j][$i] = $H;
 	} else {
 		$board_9[$j][$i] = $X;
+	}
+	if ($board_9[$j][$i] =~ /$B/ ) {
+		$bcaps++;
+	} else {
+		$wcaps++;
 	}
 	
 	&webBoard;
