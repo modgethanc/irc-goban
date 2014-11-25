@@ -196,11 +196,19 @@ sub gifSelection {
 sub play {
 	my ($self, $message) = @_;
 	
-	if ($message->{who} !~ /$$turn/) {
-		return "it's not your turn, $message->{who}";
+	#if ($message->{who} !~ /$$turn/) {
+	#	return "it's not your turn, $message->{who}";
+	#}
+
+	#my $move = &extractMove($self, $message);
+	my @parse = split(' ',$message->{body});
+	my $move = shift(@parse);
+	@parse = split('',$move);
+
+	if ($parse[1] !~ /\d/) {	
+		return;
 	}
 
-	my $move = &extractMove($self, $message);
 	push(@movelog, $move);
 
 	my ($i, $j) = &boardPosition(split("", $move));
@@ -215,7 +223,7 @@ sub play {
 
 	&webBoard(\@board_9);
 
-	return "your move, $$turn";
+	$self->say(channel => $message->{channel}, body=> "your move, $$turn");
 }
 
 sub removePiece {
@@ -287,8 +295,9 @@ sub said {
 			$self->say(channel => $message->{channel}, body => "it's $$turn\'s turn to play");
 		}
 	}}
-	if ($message->{body} =~ /play/) {
-		$self->say(channel => $message->{channel}, body => &play($self, $message));
+	if ($message->{who} =~ /$$turn/) {
+		&play($self, $message);
+		#$self->say(channel => $message->{channel}, body => &play($self, $message));
 	}
 }
 
