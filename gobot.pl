@@ -192,31 +192,48 @@ sub gifSelection {
 
 #======= gameplay
 
-sub play {
+sub play { # this only gets called to deal with input when it's the speaker's turn
 	my ($self, $message) = @_;
 	
-	#if ($message->{who} !~ /$$turn/) {
-	#	return "it's not your turn, $message->{who}";
-	#}
-
-	#my $move = &extractMove($self, $message);
 	my @parse = split(' ',$message->{body});
 	my $move = shift(@parse);
 	@parse = split('',$move);
+
+	#=== filtering out non-moves
+
+	if ($move =~ /pass/) {
+		if ($turn == \$black ) {
+			$turn = \$white;
+		} else {
+			$turn = \$black;
+		}
+		$self->say(channel => $message->{channel}, body=> "your move, $$turn");
+		return;
+	}
 
 	if (($parse[1] < 1) || ($parse[1] > 9) || (!$coords{$parse[0]})) {	
 		return;
 	}
 
-	push(@movelog, $move);
+	#== detecting illegal moves
 
 	my ($i, $j) = &boardPosition(split("", $move));
+	my $position = \$board_9[$j][$i];
+
+	if ($$position !~ /[\.\+]/) {
+		$self->say(channel => $message->{channel}, body => "illegal move: already occupied");
+		return;
+	}
+
+	#=== move successful:
+
+	push(@movelog, $move);
 
 	if ($turn == \$black ) {
-		$board_9[$j][$i] = $B;
+		$$position = $B;
 		$turn = \$white;
 	} else {
-		$board_9[$j][$i] = $W;
+		$$position = $W;
 		$turn = \$black;
 	}
 
@@ -231,20 +248,54 @@ sub removePiece {
 	my $move = &extractMove($self, $message);
 
 	my ($i, $j) = &boardPosition(split("", $move));
-
-	if (($move =~/c3/) || ($move =~ /c7/) || ($move =~ /g3/) || ($move =~ /g7/) || ($move =~ /e5/)) {
-		$board_9[$j][$i] = $H;
-	} else {
-		$board_9[$j][$i] = $X;
-	}
-	if ($board_9[$j][$i] =~ /$B/ ) {
-		$bcaps++;
-	} else {
-		$wcaps++;
+	my $position = \$board_9[$j][$i];
+	
+	#== detecting if a piece is there
+	if ($$position =~ /[\.\+]/) {
+		return "no piece there to remove.";
 	}
 	
-	&webBoard;
-	return "done. http://theta.cfa.cmu.edu/hvincent/gobot-out.html updated";
+	#== perform remove
+
+	if (($move =~/c3/) || ($move =~ /c7/) || ($move =~ /g3/) || ($move =~ /g7/) || ($move =~ /e5/)) { #HARDCODE BS
+		$$position = $H;
+	} else {
+		$$position = $X;
+	}
+	
+	&webBoard(\@board_9);
+	return "removed without incrementing captures";
+}
+
+sub capturePiece {
+	my ($self, $message) = @_;
+
+	my $move = &extractMove($self, $message);
+
+	my ($i, $j) = &boardPosition(split("", $move));
+	my $position = \$board_9[$j][$i];
+
+	#== detecting if a piece is there
+	if ($$position =~ /[\.\+]/) {
+		return "no piece there to remove.";
+	}
+	
+	#== perform capture
+
+	if (($move =~/c3/) || ($move =~ /c7/) || ($move =~ /g3/) || ($move =~ /g7/) || ($move =~ /e5/)) { #HARDCODE BS
+		$$position = $H;
+	} else {
+		$$position = $X;
+	}
+	if ($$position =~ /$B/ ) {
+		$bcaps++;
+		&webBoard;
+		return "black has $bcaps captured pieces";
+	} else {
+		$wcaps++;
+		&webBoard;
+		return "white has $wcaps captured pieces";
+	}
 }
 
 sub extractMove {
@@ -284,6 +335,9 @@ sub said {
 		when (/remove/) {
 			$self->say(channel => $message->{channel}, body => &removePiece($self, $message));
 		}
+		when (/capture/) {
+			$self->say(channel => $message->{channel}, body => &capturePiece($self, $message));
+		}
 		when (/board/) { 
 			&printBoard($self, $message); 
 		}
@@ -296,7 +350,6 @@ sub said {
 	}}
 	if ($message->{who} =~ /$$turn/) {
 		&play($self, $message);
-		#$self->say(channel => $message->{channel}, body => &play($self, $message));
 	}
 }
 
