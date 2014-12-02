@@ -89,7 +89,7 @@ my @board_13 = (
 );
 
 my @board_9 = (
-["  A B C D E F G H J  "],
+[" ","A","B","C","D","E","F","G","H","J"," "],
 ["9",".",".",".",".",".",".",".",".",".","9"],
 ["8",".",".",".",".",".",".",".",".",".","8"],
 ["7",".",".","+",".",".",".","+",".",".","7"],
@@ -99,8 +99,18 @@ my @board_9 = (
 ["3",".",".","+",".",".",".","+",".",".","3"],
 ["2",".",".",".",".",".",".",".",".",".","2"],
 ["1",".",".",".",".",".",".",".",".",".","1"],
-["  A B C D E F G H J  "]
+[" ","A","B","C","D","E","F","G","H","J"," "]
 );
+#=======
+
+sub newBoard { # $_[0] size
+}
+
+sub boardSize {
+	my ($self, $message) = @_;
+
+	my @parse = split(' ',$message->{body});
+}
 
 #======= display 
 
@@ -110,6 +120,7 @@ sub printBoard {
 
 	$self->say(channel => $message->{channel}, body => "http://theta.cfa.cmu.edu/hvincent/gobot-out.html");
 
+	#foreach my $row (@board_9) {
 	foreach my $row (@board_9) {
 		my $line = join(" ", @$row);
 
