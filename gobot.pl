@@ -11,14 +11,20 @@ my $bcaps = 0;
 my $wcaps = 0;
 
 my $turn =\$black;
-my $activeBoard = \@board_9;
+my @activeBoard;
 
 my @movelog;
+
+#=== HARDCODE BS
 
 my $B = "O";
 my $W = "X";
 my $H = "+";
 my $X = ".";
+
+my @coordList = ("  ", # first space for board rendering
+	"A","B","C","D","E","F","G","H","J", #i wish i didn't have to do this but the convention is to skip 'I'...
+	"K","L","M","N","O","P", "Q", "R", "S", "T"); 
 
 my %coords = (
 	'A' => 1,
@@ -70,24 +76,6 @@ my %coords = (
 	'1' => 9
 );
 
-my @board_13 = (
-["   A B C D E F G H J K L M N   "],
-["13",".",".",".",".",".",".",".",".",".",".",".",".",".","13"],
-["12",".",".",".",".",".",".",".",".",".",".",".",".",".","12"],
-["11",".",".",".",".",".",".",".",".",".",".",".",".",".","11"],
-["10",".",".",".","+",".",".",".",".",".","+",".",".",".","10"],
-[" 9",".",".",".",".",".",".",".",".",".",".",".",".","."," 9"],
-[" 8",".",".",".",".",".",".",".",".",".",".",".",".","."," 8"],
-[" 7",".",".",".",".",".",".","+",".",".",".",".",".","."," 7"],
-[" 6",".",".",".",".",".",".",".",".",".",".",".",".","."," 6"],
-[" 5",".",".",".",".",".",".",".",".",".",".",".",".","."," 5"],
-[" 4",".",".",".","+",".",".",".",".",".","+",".",".","."," 4"],
-[" 3",".",".",".",".",".",".",".",".",".",".",".",".","."," 3"],
-[" 2",".",".",".",".",".",".",".",".",".",".",".",".","."," 2"],
-[" 1",".",".",".",".",".",".",".",".",".",".",".",".","."," 1"],
-["   A B C D E F G H J K L M N   "]
-);
-
 my @board_9 = (
 [" ","A","B","C","D","E","F","G","H","J"," "],
 ["9",".",".",".",".",".",".",".",".",".","9"],
@@ -103,25 +91,84 @@ my @board_9 = (
 );
 #=======
 
-sub newBoard { # $_[0] size
+sub newBoard { 
+	my ($self, $message) = @_;
+	undef(@activeBoard);
+
+	my $boardSize = &boardSizer($self, $message);
+
+	my $xCoord = $boardSize;
+	my $arrayMax = $boardSize + 1;
+	my $row = 1;
+	my $column = 0;
+	my $set;
+	
+	while ($column < $arrayMax) { # make header
+		$activeBoard[0][$column] = $coordList[$column];
+		$column++;
+	}
+
+	while ($row < $arrayMax) { # make body
+		$column = 0;
+		while ($column <= $arrayMax) {
+			if (($column == $arrayMax/2) && ($row == $arrayMax/2)) { # center star
+				$set = $H;
+			} elsif ($column == 0) { # leading coord
+				if ($xCoord < 10) {
+					$set = " ".$xCoord;
+				} else {
+					$set = $xCoord;
+				}
+			} elsif ($column == $arrayMax) { # trailing coord
+				$set = $xCoord;
+			} else { # normal point
+				$set = $X;
+			}
+
+			$activeBoard[$row][$column] = $set;
+			$column++;
+		}
+		$xCoord--;
+		$row++;
+	}
+	
+	$column = 0;
+
+	while ($column < $arrayMax) { # make footer
+		$activeBoard[$arrayMax][$column] = $coordList[$column];
+		$column++;
+	}
+
+	return "okay, here's a new $boardSize"."x"."$boardSize board!";
 }
 
-sub boardSize {
+sub boardSizer {
 	my ($self, $message) = @_;
+	my $newSize;
 
 	my @parse = split(' ',$message->{body});
+	my $size = $parse[1];
+	@parse = split('x',$size);
+	
+	$newSize = $parse[0];
+
+	return $newSize;
 }
 
 #======= display 
 
 sub printBoard {
 	my ($self, $message) = @_;
+	if ($#activeBoard == 0) {
+		$self->say(channel => $message->{channel}, body => "there isn't an active board right now. say 'new (9x9, 13x13, 19x19, etc.) if you want to start one.");
+		return;
+	}
 	&webBoard;
 
 	$self->say(channel => $message->{channel}, body => "http://theta.cfa.cmu.edu/hvincent/gobot-out.html");
 
+	foreach my $row (@activeBoard) {
 	#foreach my $row (@board_9) {
-	foreach my $row (@board_9) {
 		my $line = join(" ", @$row);
 
 		$self->say(channel => $message->{channel}, body => $line);
@@ -144,11 +191,11 @@ sub webBoard {
 	
 	print "<p>";
 
-	foreach my $row (@board_9) {
-	#foreach my $row (@board) {
+	#foreach my $row (@board_9) {
+	foreach my $row (@activeBoard) {
 		foreach my $column (@$row) {
-			print &gifSelection($j, $i, $board_9[$j][$i]);
-			#print &gifSelection($j, $i, $board[$j][$i]);
+			#print &gifSelection($j, $i, $board_9[$j][$i]);
+			print &gifSelection($j, $i, $activeBoard[$j][$i]);
 			$i++
 		}
 		print "<br>\n";
@@ -233,7 +280,8 @@ sub play { # this only gets called to deal with input when it's the speaker's tu
 	#== detecting illegal moves
 
 	my ($i, $j) = &boardPosition(split("", $move));
-	my $position = \$board_9[$j][$i];
+	#my $position = \$board_9[$j][$i];
+	my $position = \$activeBoard[$j][$i];
 
 	if ($$position !~ /[\.\+]/) {
 		$self->say(channel => $message->{channel}, body => "illegal move: already occupied");
@@ -252,7 +300,8 @@ sub play { # this only gets called to deal with input when it's the speaker's tu
 		$turn = \$black;
 	}
 
-	&webBoard(\@board_9);
+	#&webBoard(\@board_9);
+	&webBoard(\@activeBoard);
 
 	$self->say(channel => $message->{channel}, body=> "your move, $$turn");
 }
@@ -263,7 +312,8 @@ sub removePiece {
 	my $move = &extractMove($self, $message);
 
 	my ($i, $j) = &boardPosition(split("", $move));
-	my $position = \$board_9[$j][$i];
+	#my $position = \$board_9[$j][$i];
+	my $position = \$activeBoard[j][$i];
 	
 	#== detecting if a piece is there
 	if ($$position =~ /[\.\+]/) {
@@ -278,7 +328,8 @@ sub removePiece {
 		$$position = $X;
 	}
 	
-	&webBoard(\@board_9);
+	#&webBoard(\@board_9);
+	&webBoard(\@activeBoard);
 	return "removed without incrementing captures";
 }
 
@@ -288,7 +339,8 @@ sub capturePiece {
 	my $move = &extractMove($self, $message);
 
 	my ($i, $j) = &boardPosition(split("", $move));
-	my $position = \$board_9[$j][$i];
+	my $position = \$activeBoard[$j][$i];
+	#my $position = \$board_9[$j][$i];
 
 	#== detecting if a piece is there
 	if ($$position =~ /[\.\+]/) {
@@ -346,6 +398,10 @@ sub said {
 	if ($message->{address}) {
 		given ($message->{body}) {
 		#== init
+			when (/^new/) {
+				$self->say(channel => $message->{channel}, body => &newBoard($self, $message));
+				&printBoard($self, $message); 
+			}
 			when (/i'm black/) { 
 				$black = $message->{who};
 				$self->say(channel => $message->{channel}, body => "okay, you're black");
@@ -354,20 +410,20 @@ sub said {
 				$white = $message->{who};
 				$self->say(channel => $message->{channel}, body => "okay, you're white");
 			}
-			#== commands
-			when (/remove/) {
+		#== commands
+			when (/^remove/) {
 				$self->say(channel => $message->{channel}, body => &removePiece($self, $message));
 			}
-			when (/capture/) {
+			when (/^capture/) {
 				$self->say(channel => $message->{channel}, body => &capturePiece($self, $message));
 			}
-			when (/board/) { 
+			when (/^board/) { 
 				&printBoard($self, $message); 
 			}
-			when (/who/) {
+			when (/^who/) {
 				$self->say(channel => $message->{channel}, body => "black: $black; white: $white");
 			}
-			when (/turn/) {
+			when (/^turn/) {
 				$self->say(channel => $message->{channel}, body => "it's $$turn\'s turn to play");
 			}
 		}
