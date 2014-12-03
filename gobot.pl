@@ -4,14 +4,16 @@ use base qw(Bot::BasicBot);
 use feature qw(switch);
 
 my $BOSS = "hvincent";
-my $black = "unnamed p1";
-my $white = "unnamed p2";
+
+my $black = "no player";
+my $white = "no player";
 
 my $bcaps = 0;
 my $wcaps = 0;
 
 my $turn =\$black;
 my @activeBoard;
+my $boardSize;
 
 my @movelog;
 
@@ -64,16 +66,7 @@ my %coords = (
 	'q' => 16,
 	'r' => 17,
 	's' => 18,
-	't' => 19,
-	'9' => 1,
-	'8' => 2,
-	'7' => 3,
-	'6' => 4,
-	'5' => 5,
-	'4' => 6,
-	'3' => 7,
-	'2' => 8,
-	'1' => 9
+	't' => 19
 );
 
 my @board_9 = (
@@ -93,9 +86,28 @@ my @board_9 = (
 
 sub newBoard { 
 	my ($self, $message) = @_;
-	undef(@activeBoard);
 
-	my $boardSize = &boardSizer($self, $message);
+	my $newSize = &boardSizer($self, $message);
+	
+	if ($newSize !~ /\d+/) {
+		return "you gotta give me a numerical size!";
+	}
+
+	if ($newSize > 19) {
+		return "maximum board size is 19x19.";
+	}
+	
+	# reset old board shit
+	$boardSize = $newSize;
+	undef(@activeBoard);
+	undef(@moves);
+	$black = "no player";
+	$white = "no player";
+	$bcaps = 0;
+	$wcaps = 0;
+	$turn =\$black;
+
+	# loop loop loop
 
 	my $xCoord = $boardSize;
 	my $arrayMax = $boardSize + 1;
@@ -128,6 +140,7 @@ sub newBoard {
 			$activeBoard[$row][$column] = $set;
 			$column++;
 		}
+		$coords{$xCoord} = $row;	
 		$xCoord--;
 		$row++;
 	}
@@ -139,7 +152,8 @@ sub newBoard {
 		$column++;
 	}
 
-	return "okay, here's a new $boardSize"."x"."$boardSize board!";
+	&printBoard($self, $message); 
+	return "new board is ready!";
 }
 
 sub boardSizer {
@@ -152,6 +166,7 @@ sub boardSizer {
 	
 	$newSize = $parse[0];
 
+
 	return $newSize;
 }
 
@@ -159,7 +174,7 @@ sub boardSizer {
 
 sub printBoard {
 	my ($self, $message) = @_;
-	if ($#activeBoard == 0) {
+	if (!@activeBoard) {
 		$self->say(channel => $message->{channel}, body => "there isn't an active board right now. say 'new (9x9, 13x13, 19x19, etc.) if you want to start one.");
 		return;
 	}
@@ -260,8 +275,18 @@ sub play { # this only gets called to deal with input when it's the speaker's tu
 	my @parse = split(' ',$message->{body});
 	my $move = shift(@parse);
 	@parse = split('',$move);
+	
+	if ($#parse > 1) {
+		$parse[1] = $parse[1].$parse[2];	
+	}
 
 	#=== filtering out non-moves
+
+	if (($parse[1] < 1) || ($parse[1] > $boardSize) || (!$coords{$parse[0]})) {	
+		return;
+	}
+
+	#=== detecting pass
 
 	if ($move =~ /pass/) {
 		if ($turn == \$black ) {
@@ -273,18 +298,15 @@ sub play { # this only gets called to deal with input when it's the speaker's tu
 		return;
 	}
 
-	if (($parse[1] < 1) || ($parse[1] > 9) || (!$coords{$parse[0]})) {	
-		return;
-	}
-
 	#== detecting illegal moves
 
 	my ($i, $j) = &boardPosition(split("", $move));
 	#my $position = \$board_9[$j][$i];
 	my $position = \$activeBoard[$j][$i];
 
+	#if (($$position == $B) || ($$position == $W)){
 	if ($$position !~ /[\.\+]/) {
-		$self->say(channel => $message->{channel}, body => "illegal move: already occupied");
+		$self->say(channel => $message->{channel}, body => "invalid move");
 		return;
 	}
 
@@ -400,7 +422,6 @@ sub said {
 		#== init
 			when (/^new/) {
 				$self->say(channel => $message->{channel}, body => &newBoard($self, $message));
-				&printBoard($self, $message); 
 			}
 			when (/i'm black/) { 
 				$black = $message->{who};
@@ -426,8 +447,20 @@ sub said {
 			when (/^turn/) {
 				$self->say(channel => $message->{channel}, body => "it's $$turn\'s turn to play");
 			}
+			when (/^help/) {
+				$self->say(channel => $message->{channel}, body => "commands addressed to me:");
+				$self->say(channel => $message->{channel}, body => "'new nxn'; n is some board size between 1 and 19");
+				$self->say(channel => $message->{channel}, body => "'i'm black' or 'i'm white' to claim a seat");
+				$self->say(channel => $message->{channel}, body => "'board' for an in-channel ascii board printout");
+				$self->say(channel => $message->{channel}, body => "'remove (coordinate)' removes a stone from the board without incrementing capture count");
+				$self->say(channel => $message->{channel}, body => "'capture (coordinate)' removes a stone and increments captures");
+				$self->say(channel => $message->{channel}, body => "'who' for current player names; 'turn' to see who's turn it is");
+				$self->say(channel => $message->{channel}, body => "passive commands:");
+				$self->say(channel => $message->{channel}, body => "");
+			}
 		}
 	}
+
 	if ($message->{who} =~ /$$turn/) {
 		&play($self, $message);
 	}
