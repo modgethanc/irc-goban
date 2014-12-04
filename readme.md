@@ -6,7 +6,8 @@ tdl:
 * web printing should stop detecting coordinates as pieces
 * undo command (req. both players to consent, etc.)
 * capture removes an entire group, which means:
-* group detection, which means:
-* adjacency detection
+	* group detection, which means:
+	* adjacency detection
 * star point generation
 * ~~multi-remove to grab a list of stones at once~~
+* breakout a config file
