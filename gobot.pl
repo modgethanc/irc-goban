@@ -298,7 +298,7 @@ sub play { # this only gets called to deal with input when it's the speaker's tu
 	my $position = \$activeBoard[$j][$i];
 
 	if ($$position !~ /[\.\+]/) {
-		$self->say(channel => $message->{channel}, body => "invalid move");
+		$self->say(channel => $message->{channel}, body => "not a legal move, buddy.");
 		return;
 	}
 
@@ -325,11 +325,11 @@ sub removePiece {
 	my $move = &extractMove($self, $message);
 
 	my ($i, $j) = &boardPosition(split("", $move));
-	my $position = \$activeBoard[j][$i];
+	my $position = \$activeBoard[$j][$i];
 	
 	#== detecting if a piece is there
 	if ($$position =~ /[\.\+]/) {
-		return "no piece there to remove.";
+		return "no piece there to remove, pal.";
 	}
 	
 	#== perform remove
@@ -354,7 +354,7 @@ sub capturePiece {
 
 	#== detecting if a piece is there
 	if ($$position =~ /[\.\+]/) {
-		return "no piece there to remove.";
+		return "no piece there to capture, friend.";
 	}
 	
 	#== perform capture
