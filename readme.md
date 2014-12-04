@@ -1,4 +1,4 @@
-this is a super rough goban that runs as an irc bot.
+this is a super rough goban that runs as an irc bot. 
 
 tdl:
 
@@ -8,3 +8,5 @@ tdl:
 * capture removes an entire group, which means:
 * group detection, which means:
 * adjacency detection
+* star point generation
+* multi-remove to grab a list of stones at once
