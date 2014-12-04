@@ -9,4 +9,4 @@ tdl:
 * group detection, which means:
 * adjacency detection
 * star point generation
-* multi-remove to grab a list of stones at once
+* ~~multi-remove to grab a list of stones at once~~
