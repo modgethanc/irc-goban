@@ -19,8 +19,8 @@ my @movelog;
 
 #=== HARDCODE BS
 
-my $B = "O";
-my $W = "X";
+my $B = "o";
+my $W = "x";
 my $H = "+";
 my $X = ".";
 
@@ -75,7 +75,8 @@ sub newBoard {
 	my ($self, $message) = @_;
 
 	my $newSize = &boardSizer($self, $message);
-	
+
+	# detect invalid board sizes	
 	if ($newSize =~ /unsquare/) {
 		return "i can only deal with square boards because i'm a square.";
 	}
@@ -135,7 +136,8 @@ sub newBoard {
 			$activeBoard[$row][$column] = $set;
 			$column++;
 		}
-		$coords{$xCoord} = $row;	
+
+		$coords{$xCoord} = $row; # set the coord to matrix translation
 		$xCoord--;
 		$row++;
 	}
@@ -147,11 +149,11 @@ sub newBoard {
 		$column++;
 	}
 
-	&printBoard($self, $message); 
-	return "new board is ready!";
+	#&printBoard($self, $message); 
+	return "new $boardSize"."x$boardSize board is ready!";
 }
 
-sub boardSizer {
+sub boardSizer { # extracts board size from command
 	my ($self, $message) = @_;
 	my $newSize;
 
@@ -172,13 +174,15 @@ sub boardSizer {
 
 sub printBoard {
 	my ($self, $message) = @_;
+
 	if (!@activeBoard) {
 		$self->say(channel => $message->{channel}, body => "there isn't an active board right now. say 'new (9x9, 13x13, 19x19, etc.) if you want to start one.");
 		return;
 	}
+
 	&webBoard;
 
-	$self->say(channel => $message->{channel}, body => "http://theta.cfa.cmu.edu/hvincent/gobot-out.html");
+	$self->say(channel => $message->{channel}, body => "graphical board: http://theta.cfa.cmu.edu/hvincent/gobot-out.html");
 
 	foreach my $row (@activeBoard) {
 		my $line = join(" ", @$row);
@@ -188,6 +192,7 @@ sub printBoard {
 }
 
 sub webBoard {
+	# filesystem stuff
 	my $outfile = "board.html";
 	my $gifs = "gogifs";
 
@@ -201,7 +206,8 @@ sub webBoard {
 	my $j, $i;
 	
 	print "<p>";
-
+	
+	# actual board loop
 	foreach my $row (@activeBoard) {
 		foreach my $column (@$row) {
 			print &gifSelection($j, $i, $activeBoard[$j][$i]);
@@ -215,7 +221,8 @@ sub webBoard {
 	print "</p>\n";
 	$j = 0;
 	$i = 0;	
-
+	
+	# game information
 	print "<p>black: $black (caps: $bcaps) <br>white: $white (caps: $wcaps)</p>";
 	print "<p>move history:</p>\n";
 	foreach (@movelog) {
@@ -234,11 +241,13 @@ sub gifSelection {
 
 	my $lead = "<img src=\"gogifs/";
 	my $tail = ".GIF\">";
-
+	
+	# special spaces
 	if ($piece =~ /$B/) { return $lead."B".$tail; }
 	elsif ($piece =~ /$W/) { return $lead."W".$tail; }
 	elsif ($piece =~ /\+/) { return $lead."H".$tail; }
 
+	# default spaces
 	elsif ($piece =~ /\./) {
 		if ($row == 1) {
 			if ($column == 1) { return $lead."1".$tail; }
@@ -257,9 +266,9 @@ sub gifSelection {
 			if (($column > 1) && ($column < $boardSize)) { return $lead."8".$tail; }
 			if ($column == $boardSize) { return $lead."9".$tail; }
 		}
+	} else {
+		return " ";
 	}
-
-	else {return " ";}
 }
 
 #======= gameplay
@@ -271,7 +280,7 @@ sub play { # this only gets called to deal with input when it's the speaker's tu
 	my $move = shift(@parse);
 	@parse = split('',$move);
 	
-	if ($#parse > 1) {
+	if ($#parse > 1) { # for multi-digit coords
 		$parse[1] = $parse[1].$parse[2];	
 	}
 
