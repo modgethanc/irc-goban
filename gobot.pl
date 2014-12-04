@@ -95,7 +95,7 @@ sub newBoard {
 	# reset old board shit
 	$boardSize = $newSize;
 	undef(@activeBoard);
-	undef(@moves);
+	undef(@movelog);
 	$black = "no player";
 	$white = "no player";
 	$bcaps = 0;
@@ -434,6 +434,9 @@ sub said {
 			when (/^turn/) {
 				$self->say(channel => $message->{channel}, body => "it's $$turn\'s turn to play");
 			}
+			when (/^moves/) {
+				$self->say(channel => $message->{channel}, body => "movelog: @movelog");
+			}
 			when (/^extra-help/) {
 				$self->say(channel => $message->{channel}, body => "commands addressed to me:");
 				$self->say(channel => $message->{channel}, body => "'new nxn'; n is some board size between 1 and 19");
@@ -441,7 +444,7 @@ sub said {
 				$self->say(channel => $message->{channel}, body => "'board' for an in-channel ascii board printout");
 				$self->say(channel => $message->{channel}, body => "'remove (coordinate)' removes a stone from the board without incrementing capture count");
 				$self->say(channel => $message->{channel}, body => "'capture (coordinate)' removes a stone and increments captures; yes, you have to do this one at a time (for now)");
-				$self->say(channel => $message->{channel}, body => "'who' for current player names; 'turn' to see who's turn it is");
+				$self->say(channel => $message->{channel}, body => "'who' for current player names; 'turn' to see who's turn it is; 'moves' to see the current move log");
 				$self->say(channel => $message->{channel}, body => "passive commands:");
 				$self->say(channel => $message->{channel}, body => "when it's your turn, just say the coordinates of the move, or 'pass' to pass. web-rendered board updates every turn.");
 			}
@@ -466,7 +469,7 @@ sub chanjoin {
 }
 
 sub help {
-	return "commands: 'new nxn', 'i'm black', 'i'm white', 'board', 'remove (coord)', 'capture (coord)', 'who', 'turn', '(coord)', 'pass', 'extra-help' for details";
+	return "commands: 'new nxn', 'i'm black', 'i'm white', 'board', 'remove (coord)', 'capture (coord)', 'who', 'turn', 'moves', '(coord)', 'pass', 'extra-help' for details";
 }
 
 #======= INITIALIZATION
