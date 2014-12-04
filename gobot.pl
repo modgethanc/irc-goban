@@ -477,5 +477,5 @@ Bot->new(
 	nick     => 'kvincent-go',
 	name     => $BOSS."'s bot",
 	quit_message     => "i'm out",
-	flood => 1,
+	#flood => 1,
 )->run();
