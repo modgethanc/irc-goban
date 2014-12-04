@@ -190,7 +190,6 @@ sub printBoard {
 sub webBoard {
 	my $outfile = "board.html";
 	my $gifs = "gogifs";
-	my @board = @{$activeBoard};
 
 	open OUT, ">", $outfile;
 	select OUT;
@@ -242,20 +241,20 @@ sub gifSelection {
 	elsif ($piece =~ /\./) {
 		if ($row == 1) {
 			if ($column == 1) { return $lead."1".$tail; }
-			if (($column > 1) && ($column < 9)) { return $lead."2".$tail; }
-			if ($column == 9) { return $lead."3".$tail; }
+			if (($column > 1) && ($column < $boardSize)) { return $lead."2".$tail; }
+			if ($column == $boardSize) { return $lead."3".$tail; }
 		} 
 
-		elsif (($row > 1) && ($row < 9)) {
+		elsif (($row > 1) && ($row < $boardSize)) {
 			if ($column == 1) { return $lead."4".$tail; }
-			if (($column > 1) && ($column < 9)) { return $lead."5".$tail; }
-			if ($column == 9) { return $lead."6".$tail; }
+			if (($column > 1) && ($column < $boardSize)) { return $lead."5".$tail; }
+			if ($column == $boardSize) { return $lead."6".$tail; }
 		}
 
-		elsif ($row == 9) {
+		elsif ($row == $boardSize) {
 			if ($column == 1) { return $lead."7".$tail; }
-			if (($column > 1) && ($column < 9)) { return $lead."8".$tail; }
-			if ($column == 9) { return $lead."9".$tail; }
+			if (($column > 1) && ($column < $boardSize)) { return $lead."8".$tail; }
+			if ($column == $boardSize) { return $lead."9".$tail; }
 		}
 	}
 
