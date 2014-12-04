@@ -69,19 +69,6 @@ my %coords = (
 	't' => 19
 );
 
-my @board_9 = (
-[" ","A","B","C","D","E","F","G","H","J"," "],
-["9",".",".",".",".",".",".",".",".",".","9"],
-["8",".",".",".",".",".",".",".",".",".","8"],
-["7",".",".","+",".",".",".","+",".",".","7"],
-["6",".",".",".",".",".",".",".",".",".","6"],
-["5",".",".",".",".","+",".",".",".",".","5"],
-["4",".",".",".",".",".",".",".",".",".","4"],
-["3",".",".","+",".",".",".","+",".",".","3"],
-["2",".",".",".",".",".",".",".",".",".","2"],
-["1",".",".",".",".",".",".",".",".",".","1"],
-[" ","A","B","C","D","E","F","G","H","J"," "]
-);
 #=======
 
 sub newBoard { 
@@ -89,12 +76,20 @@ sub newBoard {
 
 	my $newSize = &boardSizer($self, $message);
 	
+	if ($newSize =~ /unsquare/) {
+		return "i can only deal with square boards because i'm a square.";
+	}
+
 	if ($newSize !~ /\d+/) {
 		return "you gotta give me a numerical size!";
 	}
-
+	
 	if ($newSize > 19) {
 		return "maximum board size is 19x19.";
+	}
+
+	if ($newSize < 1) {
+		return "minimum board size is 1x1 (but like really why would you do that)";
 	}
 	
 	# reset old board shit
@@ -163,9 +158,12 @@ sub boardSizer {
 	my @parse = split(' ',$message->{body});
 	my $size = $parse[1];
 	@parse = split('x',$size);
-	
-	$newSize = $parse[0];
 
+	if (($#parse > 0) && ($parse[0] != $parse[1])) {
+		return "unsquare";
+	}	
+
+	$newSize = $parse[0];
 
 	return $newSize;
 }
@@ -183,7 +181,6 @@ sub printBoard {
 	$self->say(channel => $message->{channel}, body => "http://theta.cfa.cmu.edu/hvincent/gobot-out.html");
 
 	foreach my $row (@activeBoard) {
-	#foreach my $row (@board_9) {
 		my $line = join(" ", @$row);
 
 		$self->say(channel => $message->{channel}, body => $line);
@@ -206,10 +203,8 @@ sub webBoard {
 	
 	print "<p>";
 
-	#foreach my $row (@board_9) {
 	foreach my $row (@activeBoard) {
 		foreach my $column (@$row) {
-			#print &gifSelection($j, $i, $board_9[$j][$i]);
 			print &gifSelection($j, $i, $activeBoard[$j][$i]);
 			$i++
 		}
@@ -301,10 +296,8 @@ sub play { # this only gets called to deal with input when it's the speaker's tu
 	#== detecting illegal moves
 
 	my ($i, $j) = &boardPosition(split("", $move));
-	#my $position = \$board_9[$j][$i];
 	my $position = \$activeBoard[$j][$i];
 
-	#if (($$position == $B) || ($$position == $W)){
 	if ($$position !~ /[\.\+]/) {
 		$self->say(channel => $message->{channel}, body => "invalid move");
 		return;
@@ -322,7 +315,6 @@ sub play { # this only gets called to deal with input when it's the speaker's tu
 		$turn = \$black;
 	}
 
-	#&webBoard(\@board_9);
 	&webBoard(\@activeBoard);
 
 	$self->say(channel => $message->{channel}, body=> "your move, $$turn");
@@ -334,7 +326,6 @@ sub removePiece {
 	my $move = &extractMove($self, $message);
 
 	my ($i, $j) = &boardPosition(split("", $move));
-	#my $position = \$board_9[$j][$i];
 	my $position = \$activeBoard[j][$i];
 	
 	#== detecting if a piece is there
@@ -350,7 +341,6 @@ sub removePiece {
 		$$position = $X;
 	}
 	
-	#&webBoard(\@board_9);
 	&webBoard(\@activeBoard);
 	return "removed without incrementing captures";
 }
@@ -362,7 +352,6 @@ sub capturePiece {
 
 	my ($i, $j) = &boardPosition(split("", $move));
 	my $position = \$activeBoard[$j][$i];
-	#my $position = \$board_9[$j][$i];
 
 	#== detecting if a piece is there
 	if ($$position =~ /[\.\+]/) {
@@ -370,7 +359,6 @@ sub capturePiece {
 	}
 	
 	#== perform capture
-
 
 	if ($$position =~ /$B/ ) {
 		if (($move =~/c3/) || ($move =~ /c7/) || ($move =~ /g3/) || ($move =~ /g7/) || ($move =~ /e5/)) { #HARDCODE BS
@@ -447,16 +435,20 @@ sub said {
 			when (/^turn/) {
 				$self->say(channel => $message->{channel}, body => "it's $$turn\'s turn to play");
 			}
-			when (/^help/) {
+			when (/^extra-help/) {
 				$self->say(channel => $message->{channel}, body => "commands addressed to me:");
 				$self->say(channel => $message->{channel}, body => "'new nxn'; n is some board size between 1 and 19");
 				$self->say(channel => $message->{channel}, body => "'i'm black' or 'i'm white' to claim a seat");
 				$self->say(channel => $message->{channel}, body => "'board' for an in-channel ascii board printout");
 				$self->say(channel => $message->{channel}, body => "'remove (coordinate)' removes a stone from the board without incrementing capture count");
-				$self->say(channel => $message->{channel}, body => "'capture (coordinate)' removes a stone and increments captures");
+				$self->say(channel => $message->{channel}, body => "'capture (coordinate)' removes a stone and increments captures; yes, you have to do this one at a time (for now)");
 				$self->say(channel => $message->{channel}, body => "'who' for current player names; 'turn' to see who's turn it is");
 				$self->say(channel => $message->{channel}, body => "passive commands:");
-				$self->say(channel => $message->{channel}, body => "");
+				$self->say(channel => $message->{channel}, body => "when it's your turn, just say the coordinates of the move, or 'pass' to pass. web-rendered board updates every turn.");
+			}
+		
+			default {
+				$self->say(channel => $message->{channel}, body => "that's not really something i know how to deal with");
 			}
 		}
 	}
@@ -474,6 +466,10 @@ sub chanjoin {
 	}
 }
 
+sub help {
+	return "commands: 'new nxn', 'i'm black', 'i'm white', 'board', 'remove (coord)', 'capture (coord)', 'who', 'turn', '(coord)', 'pass', 'extra-help' for details";
+}
+
 #======= INITIALIZATION
 
 Bot->new(
@@ -482,4 +478,5 @@ Bot->new(
 	nick     => 'kvincent-go',
 	name     => $BOSS."'s bot",
 	quit_message     => "i'm out",
+	flood => 1,
 )->run();
